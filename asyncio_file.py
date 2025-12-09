@@ -5,13 +5,6 @@
 # comparison, sends the client the message "Too High", "Too Low", or "Correct",
 # respectively. If correct, the client connection is closed. All exceptions must be
 # caught.
-echo "# practice" >> README.md
-git init
-git add README.md
-git commit -m "first commit"
-git branch -M main
-git remote add origin https://github.com/Devinder-ctrl/practice.git
-git push -u origin main
 
 # from asyncio import run,start_server, StreamReader, StreamWriter 
 # from random import randint
@@ -231,7 +224,7 @@ git push -u origin main
 
 
 
-#exam question
+#--------exam question---------
 # /2) Using Python's asyncio, write a server that listens on localhost port 12345, 
 # and upon successful connection by a client, repeatedly waits for a newline-terminated string 
 # from that client, then prints out that string.  The connection is closed thereafter, but the 
@@ -347,3 +340,53 @@ git push -u origin main
 
 
 # run(main())
+
+
+-------intructors answer--------------
+
+from asyncio import run, start_server, StreamReader, StreamWriter
+from struct import pack
+
+async def send_nums(w, n):
+    print(f'Processing {n}')
+    for i in range(3,-1,-1):
+        num = 0
+        for j in range(0,8):
+            num = num << 1
+            bit = (n[j] & 2**i) >> i
+            num = num | bit
+            print(bit, bin(num))
+        print(">",num)
+        w.write(pack('!B', num))
+        await w.drain()
+    print('DONE')
+
+async def process_file(reader: StreamReader, writer: StreamWriter) -> None:
+    try:
+        data = await reader.readline()
+        file = data.decode().strip()
+        print(f'Received {file}')
+
+        cnt = 0
+        nums = []
+        with open(file) as f:
+            for line in f:
+                num = int(line)
+                if num < 0 or num > 15:
+                    continue
+                nums.append(num)
+                print(nums[-1])
+                cnt += 1
+                if cnt == 8:
+                    await send_nums(writer, nums)
+                    cnt = 0
+                    nums = []
+        if cnt != 0:
+            nums = nums + [0] * (8 - cnt)
+            await send_nums(writer, nums)
+
+    except Exception as e:
+        print(e)
+
+    writer.close()
+    await writer.wait_closed()
